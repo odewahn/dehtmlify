@@ -26,12 +26,16 @@ func ExampleScrape(fn string) {
   }
 
   doc.Find("section").Each(func(i int, s *goquery.Selection) {
-    t, _ := s.Html()
-	s.ReplaceWithHtml(t)
+	 html, _ := s.Html()
+	 s.AfterHtml(html)
   })
 
-  out, _ := doc.Html()
-  fmt.Println(out)
+  doc.Find("section").Each(func(i int, s *goquery.Selection) {
+	 s.Remove()
+  })
+  
+  fmt.Println(doc.Html())
+
 }
 
 
