@@ -1,45 +1,60 @@
 package main
 
 import (
-  "fmt"
-  "log"
-  "os"
-  "github.com/PuerkitoBio/goquery"
+	"fmt"
+	"golang.org/x/net/html"
+	"io"
+	"log"
+	"os"
 )
 
-
-// Here's what I want to do:
-//   $("section").each(function() { $(this).replaceWith(this.innerHTML) }`
-
-
-
-func ExampleScrape(fn string) {
-  f, err := os.Open(fn)
-  if err != nil {
-    log.Fatal(err)
-  }
-  defer f.Close()
-
-  doc, err := goquery.NewDocumentFromReader(f) 
-  if err != nil {
-    log.Fatal(err)
-  }
-
-  doc.Find("section").Each(func(i int, s *goquery.Selection) {
-	 html, _ := s.Html()
-	 s.AfterHtml(html)
-  })
-
-  doc.Find("section").Each(func(i int, s *goquery.Selection) {
-	 s.Remove()
-  })
-  
-  fmt.Println(doc.Html())
-
+func renderStartTag(t html.Token) string {
+	ret := "<" + t.Data
+	for _,a := range t.Attr {
+		ret += fmt.Sprintf(" %s='%s' ", a.Key, a.Val)
+	}
+	ret += ">"
+	return ret
 }
 
+func renderEndTag(t html.Token) string {
+	return fmt.Sprintf("</%s>", t.Data)
+}
 
+func parseHtml(r io.Reader) {
+	d := html.NewTokenizer(r)
+	for {
+		// token type
+		tokenType := d.Next()
+		if tokenType == html.ErrorToken {
+			return
+		}
+		token := d.Token()
+		switch tokenType {
+		case html.StartTagToken:
+			if token.Data != "section" {
+				fmt.Print(renderStartTag(token))
+			}
+		case html.TextToken: // text between start and end tag
+			fmt.Print(token.Data)
+		case html.EndTagToken: // </tag>
+			if token.Data != "section" {
+				fmt.Print(renderEndTag(token))				
+			}
+		case html.SelfClosingTagToken:
+			
+
+		}
+	}
+}
 
 func main() {
-	ExampleScrape("ch01.html")
+	f, err := os.Open("ch01.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	parseHtml(f)
+
 }
